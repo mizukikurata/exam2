@@ -1,0 +1,165 @@
+---
+title: "Exam2"
+author: "Kurata"
+date: "6/27/2020"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Q1 & 2 
+```{r include = FALSE}
+#clear environment
+rm(list=ls(all=TRUE))
+
+#load inequality data
+library(rio)
+inequality_data = import("inequality.xlsx")
+```
+
+### Q3
+This is a cross-sectional data set as the summary for year below suggests that all data is from 2015, and the inequality_gini variable is recorded by country. 
+```{r include=TRUE}
+head(inequality_data)
+str(inequality_data)
+summary(inequality_data$year)
+```
+### Q4
+```{r echo = FALSE}
+subset(inequality_data, country == "Sweden")
+subset(inequality_data, country == "Denmark")
+
+```
+
+### Q5
+```{r echo = FALSE}
+subset(inequality_data, country == "Brazil")
+```
+
+### Q6
+It is better to have lower inequality_gini scores. 
+
+### Q7
+```{r echo= FALSE}
+head(inequality_data)
+```
+
+### Q8 
+```{r include = FALSE}
+accent.remove = function(s){
+  old1 = "ú"
+  new1 = "u"
+  s1 = chartr(old1, new1, s)
+}
+
+#apply function to remove accents 
+inequality_data$country = accent.remove(inequality_data$country)
+
+```
+```{r echo = FALSE}
+head(inequality_data)
+```
+### Q9
+```{r include=FALSE}
+inequality_data = inequality_data[order(inequality_data$inequality_gini),]
+```
+```{r echo = FALSE}
+head(inequality_data,n=5)
+```
+### Q10
+```{r include = TRUE}
+avg = mean(inequality_data$inequality_gini, na.rm = TRUE)
+```
+### Q11 create new variables 
+```{r include = FALSE}
+inequality_data$low_inequality = NA
+inequality_data$high_inequality = NA
+
+inequality_data$low_inequality = ifelse(test = inequality_data$inequality_gini < avg,1,0)
+inequality_data$high_inequality = ifelse(test = inequality_data$inequality_gini > avg,1,0)
+```
+### Q12 crosstab 
+```{r echo = FALSE}
+library(doBy)
+summaryBy(low_inequality ~ high_inequality, data=inequality_data)
+```
+### Q13 for loop
+```{r echo = FALSE}
+actors = c("World Bank", "African Development Bank", "Bill and Melinda Gates Foundation")
+for (i in 1:length(actors)){
+  print(actors[i])
+}
+```
+### Q14
+Government Expenditure on Education may correlate to inequality, since I assume less equal countries to have less accessible education. 
+
+### Q15 import variables
+```{r include = FALSE}
+library(WDI)
+education_expenditure = WDI(country = "all",
+                      indicator = c("SE.XPD.TOTL.GB.ZS"),
+                      start = 2015, end = 2015, extra = FALSE, cache = NULL)
+```
+### Q16 rename variable 
+```{r}
+library(data.table)
+setnames(education_expenditure,"SE.XPD.TOTL.GB.ZS","total_education_expenditure")
+```
+
+### Q17 merge data sets 
+```{r include = FALSE}
+library(tidyverse)
+merged_df = left_join(x = inequality_data, 
+                        y = education_expenditure,
+                        by = "country")
+
+#remove .x and .y variables and renaming them
+merged_df = 
+  merged_df %>%
+  select(-c("year.x")) %>%
+  dplyr::rename("year" = "year.y")
+
+merged_df = 
+  merged_df %>%
+  select(-c("iso2c.x")) %>%
+  dplyr::rename("iso2c" = "iso2c.y")
+```
+### Q18 remove countries with NA
+```{r include = FALSE}
+merged_df = na.omit(merged_df, select = c("inequality_gini","total_education_expenditure"))
+```
+### Q19 filter data 
+```{r include = FALSE}
+data_greater_30 =
+  merged_df %>%
+  dplyr::filter((inequality_gini>30))
+```
+### Q20 count
+```{r}
+
+```
+### Q21 apply
+```{r echo = FALSE}
+sapply(data_greater_30$inequality_gini,sum)
+```
+### Q22 label 
+```{r include = FALSE}
+library(labelled)
+var_label(merged_df) = list(`country` = "country",
+                             `inequality_gini` = "distribution of income",
+                             `low_inequality` = "below average inequality_gini",
+                             `high_inequality` = "above average inequality_gini",
+                             `iso2c` = "ISO-2 country code",
+                             `total_education_expenditure` = "total government education expenditure",
+                             `year` = "year")
+```
+### Q23 save labels
+```{r include = FALSE}
+export(merged_df,
+       "final_data.dta")
+```
+
+
+
